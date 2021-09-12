@@ -1,7 +1,6 @@
 from asyncio import StreamReader, StreamWriter
 import logging
-from enum import Enum, unique
-from user import authenticate_user, users
+from user import authenticate_user
 
 database = dict()
 
@@ -13,70 +12,74 @@ class BaseException(Exception):
   def __str__(self):
     return f'{self.message}'
 
-@unique
-class CommandType(Enum):
-  # User commands
-  login = 'login' # anyone
-  whoami = 'whoami' # anyone
-  new_user = 'new_user' # anyone
-  delete_user = 'remove_user' # themselves or root, deletes their databases
-  exit = 'exit' # anyone
-  # Database commands
-  current_db = 'current_db'
-  select_db = 'select_db' # root can select any
-  new_db = 'new_db' # anyone
-  delete_db = 'delete_db' # root can delete any
-  # Entity commands
-  put = 'put'
-  get = 'get'
-  update = 'update'
-  delete = 'delete'
-  ttl = 'ttl'
+# update, ttl, current_db, select_db, new_db, delete_db, new_user, delete_user
+
+class Session():
+  def __init__(self):
+    self._username = None
+  
+  @property
+  def username(self):
+    return self._username
+
+  @username.setter
+  def username(self, u):
+    self._username = u
+
+class Command():
+  def login(self, session: Session, username='', password=''):
+    if username == '' or password == '' or not authenticate_user(username, password):
+      raise BaseException('invalid credentials')
+    session.username = username
+    return 'login: ok'
+
+  def whoami(self, session: Session):
+    return session.username
+
+  def get(self, session: Session, key):
+    if not session.username:
+      raise BaseException('unauthorized')
+    try:
+      return database[key]
+    except KeyError:
+      raise BaseException('invalid key')
+
+  def put(self, session: Session, key, value):
+    if not session.username:
+      raise BaseException('unauthorized')
+    database[key] = value
+    return 'put: ok'
+
+  def delete(self, session: Session, key):
+    if not session.username:
+      raise BaseException('unauthorized')
+    try:
+      del database[key]
+    except KeyError:
+      pass
+    return 'delete: ok'
+
+  def execute_method(self, method):
+    try:
+      return getattr(self, method)
+    except AttributeError:
+      raise BaseException('invalid command')
 
 async def handler(reader: StreamReader, writer: StreamWriter):
-  current_user = None
+  session = Session()  
   while True:
     try:
       line = await reader.readline()
-      message = line.decode().rstrip().split(' ')
-
+      if reader.at_eof():
+        return
+      command, *params = line.decode().rstrip().split(' ')
       # logs out user passwords, do not use this in production
       logging.info(f'message from client: {line}')
-      response_string = str()
-      command = message[0]
+
+      response = Command().execute_method(command)(session, *params)
       
-      if command == CommandType.login.value:
-        if len(message) < 3 or not authenticate_user(message[1], message[2]):
-          raise BaseException('invalid credentials')
-        current_user = message[1]
-        response_string = 'login: ok'
-      elif command == CommandType.exit.value:
-        writer.close()
-        logging.info('connection closed with client')
-        return
-      elif command == CommandType.whoami.value:
-        response_string = current_user
-      elif current_user in users:
-        if command == CommandType.get.value:
-          try:
-            response_string = database[message[1]]
-          except KeyError:
-            raise BaseException('invalid key')
-        elif command == CommandType.put.value:
-          database[message[1]] = message[2]
-          response_string = 'put: ok'
-        elif command == CommandType.delete.value:
-          try:
-            del database[message[1]]
-          except KeyError:
-            pass
-          finally:
-            response_string = 'delete: ok'
-      else:
-        raise BaseException('invalid command or unauthorized user')
-      writer.write(f'{response_string}\n'.encode())
-      await writer.drain()
+      writer.write(f'{response}\n'.encode())
     except BaseException as e:
       logging.warning(e)
       writer.write(f'{e}\n'.encode())
-      await writer.drain()
+    await writer.drain()

@@ -6,6 +6,7 @@ https://12factor.net/
 https://docs.python.org/3/library/hashlib.html#hashlib.pbkdf2_hmac
 https://docs.python.org/3/library/pickle.html
 https://docs.python.org/3/library/asyncio-stream.html
+https://stackoverflow.com/questions/42040134/execute-function-based-on-functions-name-string
 
 ### Features
 
