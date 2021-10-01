@@ -12,18 +12,21 @@ https://stackoverflow.com/questions/42040134/execute-function-based-on-functions
 
 - in memory database
 - persistence on disk
-- concurrent
+- single threaded, concurrent working
 - asyncio
 - 12 factor principle (env variables)
 - key value store
 - multiple distinct db
 - safe user and resorce handling with authorization and authentication
 - custom communication protocol using tcp sockets
+- no burnt in constant
 
 ### TODO:
 
-- user functions, authentication, authorization
-- database creation and ownership
+- ttl
+- delete_user, delete_db
+- pickle
+- fast partial save
 - tidy things up
 - tests
 - documentation
