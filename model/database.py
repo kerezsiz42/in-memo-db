@@ -6,23 +6,18 @@ class Database():
   _dictionary: Dict[str, str] = dict()
 
   def get(self, key: str) -> str:
-    if key in self._dictionary:
-      return self._dictionary[key]
-    else:
+    if key not in self._dictionary:
       raise BaseException('invalid key')
+    return self._dictionary[key]
 
-  def put(self, key: str, value: str) -> str:
+  def put(self, key: str, value: str) -> None:
     self._dictionary[key] = value
-    return 'put: ok'
 
-  def delete(self, key: str) -> str:
+  def delete(self, key: str) -> None:
     if key in self._dictionary:
       del self._dictionary[key]
-    return 'delete: ok'
 
-  def update(self, key: str, value: str) -> str:
-    if key in self._dictionary:
-      self._dictionary[key] = value
-      return 'update: ok'
-    else:
+  def update(self, key: str, value: str) -> None:
+    if key not in self._dictionary:
       raise BaseException('invalid key')
+    self._dictionary[key] = value

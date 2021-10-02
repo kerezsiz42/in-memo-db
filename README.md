@@ -19,14 +19,13 @@ https://stackoverflow.com/questions/42040134/execute-function-based-on-functions
 - multiple distinct db
 - safe user and resorce handling with authorization and authentication
 - custom communication protocol using tcp sockets
-- no burnt in constant
+- almost no burnt in constant, hogh configurability
 
 ### TODO:
 
+- delete_user, delete_db, create_user handlers
 - ttl
-- delete_user, delete_db
 - pickle
 - fast partial save
-- tidy things up
 - tests
 - documentation

@@ -13,27 +13,52 @@ HashedPassword = bytes
 
 class Store():
   def __init__(self):
-    self._databases: Dict[DatabaseName, Database] = dict()
+    self._dbs: Dict[DatabaseName, Database] = dict()
     self._users: Dict[Username, HashedPassword] = dict()
-    self._users_of_databases: Dict[DatabaseName, Set[Username]] = dict()
-    self._databases_of_users: Dict[Username, Set[DatabaseName]] = dict()
+    self._users_of_dbs: Dict[DatabaseName, Set[Username]] = dict()
+    self._dbs_of_users: Dict[Username, Set[DatabaseName]] = dict()
 
   # ttl
-  # delete_db, delete_user
-  def create_database(self, username: Username, new_db_name: DatabaseName):
+  def create_database(self, username: Username, new_db_name: DatabaseName) -> None:
     if username not in self._users:
       raise BaseException('user does not exist')
-    if new_db_name in self._databases:
+    if new_db_name in self._dbs:
       raise BaseException('database already exist with the same name')
-    self._databases[new_db_name] = Database()
-    self._users_of_databases[new_db_name] = {username}
-    self._databases_of_users[username].add(new_db_name)
-    return 'create_db: ok'
+    self._dbs[new_db_name] = Database()
+    self.add_user_to_owners(username=username, db_name=new_db_name)
+
+  def add_user_to_owners(self, username: Username, db_name: DatabaseName) -> None:
+    if username not in self._users:
+      raise BaseException('user does not exist')
+    self._users_of_dbs[db_name] = {username}
+    self._dbs_of_users[username].add(db_name)
+
+  def delete_database(self, username: Username, db_name: DatabaseName) -> None:
+    if db_name not in self._dbs or username not in self._users_of_dbs[db_name]:
+      # idempotency
+      return None
+    del self._dbs[db_name]
+    db_users = self._users_of_dbs[db_name]
+    for db_user in db_users:
+      databases_of_user = self._dbs_of_users[db_user]
+      databases_of_user.remove(db_name)
+    del self._users_of_dbs[db_name]
+
+  def delete_user(self, username: Username) -> None:
+    if username not in self._users:
+      # idempotency
+      return None
+    del self._users[username]
+    dbs_of_user = self._dbs_of_users[username]
+    for database in dbs_of_user:
+      users_of_db = self._users_of_dbs[database]
+      users_of_db.remove(username)
+    del self._dbs_of_users[username]
 
   def get_database_by_name(self, username: Username, db_name: DatabaseName) -> Database:
-    if db_name not in self._databases or username not in self._users_of_databases[db_name]:
+    if db_name not in self._dbs or username not in self._users_of_dbs[db_name]:
       raise BaseException('database does not exist')
-    return self._databases[db_name]
+    return self._dbs[db_name]
 
   def _hash_password(self, password: bytes) -> bytes:
     salt = os.urandom(32)
@@ -48,12 +73,11 @@ class Store():
                                         salt=salt, iterations=PBKDF2_HMAC_ITERATIONS)
     return key_to_verify == key
 
-  def create_user(self, username: str, password: str) -> str:
-    if username in self._users:
+  def create_user(self, username_to_create: str, password: str) -> None:
+    if username_to_create in self._users:
       raise BaseException('username already taken')
-    self._users[username] = self._hash_password(password.encode())
-    self._databases_of_users[username] = set()
-    return 'register: ok'
+    self._users[username_to_create] = self._hash_password(password.encode())
+    self._dbs_of_users[username_to_create] = set()
 
   def authenticate_user(self, username: str, password: str) -> bool:
     if username not in self._users:

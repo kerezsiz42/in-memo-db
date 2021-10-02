@@ -6,7 +6,8 @@ import logging
 import sys
 
 from config import HOST, PORT, ROOT_PASSWORD, ROOT_USER
-from handler import handler
+from handlers import create_db, current_db, delete, get, login, put, select_db, update, whoami
+from model.router import Router
 from model.store import Store
 
 
@@ -15,7 +16,17 @@ async def main_coro():
     store = Store()
     # Load saved state here
     store.create_user(ROOT_USER, ROOT_PASSWORD)
-    server = await asyncio.start_server(lambda reader, writer: handler(reader, writer, store), host=HOST, port=PORT)
+    router = Router()
+    router.use('login', [login])
+    router.use('whoami', [whoami])
+    router.use('create_db', [whoami, create_db])
+    router.use('select_db', [whoami, select_db])
+    router.use('current_db', [whoami, current_db])
+    router.use('get', [whoami, current_db, get])
+    router.use('put', [whoami, current_db, put])
+    router.use('delete', [whoami, current_db, delete])
+    router.use('update', [whoami, current_db, update])
+    server = await asyncio.start_server(lambda r, w: router(r, w, store), host=HOST, port=PORT)
     host, port = server.sockets[0].getsockname()
     logging.info(f'serving on {host}:{port}')
     await server.start_serving()
