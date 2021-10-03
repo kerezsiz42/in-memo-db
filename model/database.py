@@ -1,5 +1,5 @@
 from typing import Dict
-from model.exception import BaseException
+from model.exception import InvalidKeyError
 
 
 class Database():
@@ -7,7 +7,7 @@ class Database():
 
   def get(self, key: str) -> str:
     if key not in self._dictionary:
-      raise BaseException('invalid key')
+      raise InvalidKeyError
     return self._dictionary[key]
 
   def put(self, key: str, value: str) -> None:
@@ -19,5 +19,5 @@ class Database():
 
   def update(self, key: str, value: str) -> None:
     if key not in self._dictionary:
-      raise BaseException('invalid key')
+      raise InvalidKeyError
     self._dictionary[key] = value

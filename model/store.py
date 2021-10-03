@@ -4,7 +4,7 @@ import os
 import hashlib
 from config import PBKDF2_HMAC_ITERATIONS
 from model.database import Database
-from model.exception import BaseException
+from model.exception import DbAlreadyExistsError, DbNotExistError, UserNotExistError, UsernameAlreadyTakenError
 
 DatabaseName = str
 Username = str
@@ -21,15 +21,15 @@ class Store():
   # ttl
   def create_database(self, username: Username, new_db_name: DatabaseName) -> None:
     if username not in self._users:
-      raise BaseException('user does not exist')
+      raise UserNotExistError
     if new_db_name in self._dbs:
-      raise BaseException('database already exist with the same name')
+      raise DbAlreadyExistsError
     self._dbs[new_db_name] = Database()
     self.add_user_to_owners(username=username, db_name=new_db_name)
 
   def add_user_to_owners(self, username: Username, db_name: DatabaseName) -> None:
     if username not in self._users:
-      raise BaseException('user does not exist')
+      raise UserNotExistError
     self._users_of_dbs[db_name] = {username}
     self._dbs_of_users[username].add(db_name)
 
@@ -57,7 +57,7 @@ class Store():
 
   def get_database_by_name(self, username: Username, db_name: DatabaseName) -> Database:
     if db_name not in self._dbs or username not in self._users_of_dbs[db_name]:
-      raise BaseException('database does not exist')
+      raise DbNotExistError
     return self._dbs[db_name]
 
   def _hash_password(self, password: bytes) -> bytes:
@@ -75,7 +75,7 @@ class Store():
 
   def create_user(self, username_to_create: str, password: str) -> None:
     if username_to_create in self._users:
-      raise BaseException('username already taken')
+      raise UsernameAlreadyTakenError
     self._users[username_to_create] = self._hash_password(password.encode())
     self._dbs_of_users[username_to_create] = set()
 
@@ -87,10 +87,10 @@ class Store():
 
   def list_users_of_db(self, db_name: DatabaseName) -> Set[DatabaseName]:
     if db_name not in self._dbs:
-      raise BaseException('database does not exist')
+      raise DbNotExistError
     return self._users_of_dbs[db_name]
 
   def list_dbs_of_user(self, username: Username) -> Set[Username]:
     if username not in self._users:
-      raise BaseException('user does not exist')
+      raise UserNotExistError
     return self._dbs_of_users[username]

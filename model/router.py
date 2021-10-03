@@ -1,9 +1,9 @@
-from typing import Any, Callable, Dict, List, Optional
+from typing import Callable, Dict, List
 from asyncio import StreamReader, StreamWriter
 import logging
 from model.context import Context
-from model.store import DatabaseName, Store, Username
-from model.database import Database
+from model.exception import InvalidCommandError
+from model.store import Store
 
 
 Handler = Callable[[Context], str]
@@ -32,7 +32,7 @@ class Router():
           for handler in self._routes[route]:
             response = handler(ctx)
         else:
-          raise BaseException('invalid command')
+          raise InvalidCommandError
       except BaseException as err:
         logging.warning(err)
         response = str(err)
