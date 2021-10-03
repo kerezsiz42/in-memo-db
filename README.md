@@ -6,24 +6,24 @@ https://12factor.net/
 https://docs.python.org/3/library/hashlib.html#hashlib.pbkdf2_hmac
 https://docs.python.org/3/library/pickle.html
 https://docs.python.org/3/library/asyncio-stream.html
-https://stackoverflow.com/questions/42040134/execute-function-based-on-functions-name-string
+- koa & express js patterns
 
 ### Features
 
 - in memory database
-- persistence on disk
-- single threaded, concurrent working
-- asyncio
-- 12 factor principle (env variables)
-- key value store
-- multiple distinct db
-- safe user and resorce handling with authorization and authentication
+  - multiple distinct db
+  - key value store
+- persistence on disk, pickle
+- single threaded
+- concurrent, asyncio
+- 12 factor principles
+  - cofigurable by environment variables
+- safe user and resource handling with authorization and authentication
+- database creation, listing and deletion
 - custom communication protocol using tcp sockets
-- almost no burnt in constant, hogh configurability
 
 ### TODO:
 
-- delete_user, delete_db, create_user handlers
 - ttl
 - pickle
 - fast partial save

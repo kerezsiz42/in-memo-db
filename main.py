@@ -6,7 +6,7 @@ import logging
 import sys
 
 from config import HOST, PORT, ROOT_PASSWORD, ROOT_USER
-from handlers import create_db, current_db, delete, get, login, put, select_db, update, whoami
+from handlers import create_db, register_user, current_db, delete, delete_db, delete_user, get, list_dbs, list_users, login, put, select_db, update, whoami
 from model.router import Router
 from model.store import Store
 
@@ -14,14 +14,18 @@ from model.store import Store
 async def main_coro():
   try:
     store = Store()
-    # Load saved state here
+    # Load saved store data here
     store.create_user(ROOT_USER, ROOT_PASSWORD)
     router = Router()
     router.use('login', [login])
     router.use('whoami', [whoami])
+    router.use('register_user', [register_user])
     router.use('create_db', [whoami, create_db])
     router.use('select_db', [whoami, select_db])
-    router.use('current_db', [whoami, current_db])
+    router.use('delete_db', [whoami, delete_db])
+    router.use('delete_user', [whoami, delete_user])
+    router.use('list_users', [whoami, list_users])
+    router.use('list_dbs', [whoami, list_dbs])
     router.use('get', [whoami, current_db, get])
     router.use('put', [whoami, current_db, put])
     router.use('delete', [whoami, current_db, delete])
@@ -35,7 +39,7 @@ async def main_coro():
   except asyncio.CancelledError:
     server.close()
     await server.wait_closed()
-    # Save state here
+    # Save store data here
     logging.info('graceful shutdown: ok')
 
 if __name__ == '__main__':

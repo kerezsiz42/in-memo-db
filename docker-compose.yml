@@ -1,0 +1,11 @@
+services:
+  in-memo-db:
+    build: .
+    environment:
+      ROOT_USER: user
+      ROOT_PASSWORD: password
+      PORT: 80
+      HOST: 0.0.0.0
+      PBKDF2_HMAC_ITERATIONS: 100_000
+    ports: 
+      - 8080:80

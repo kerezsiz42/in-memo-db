@@ -1,9 +1,11 @@
-from typing import Any, Callable, Dict, List
+from typing import Any, Callable, Dict, List, Optional
 from asyncio import StreamReader, StreamWriter
 import logging
-from model.store import Store
+from model.context import Context
+from model.store import DatabaseName, Store, Username
+from model.database import Database
 
-Context = Dict[str, Any]
+
 Handler = Callable[[Context], str]
 
 
@@ -16,7 +18,7 @@ class Router():
     return self
 
   async def __call__(self, reader: StreamReader, writer: StreamWriter, store: Store):
-    ctx: Context = dict(username=str(), database_name=str(), database=None, store=store, params=list())
+    ctx = Context(username=str(), database_name=str(), database=None, store=store, params=list())
     while True:
       response = str()
       try:
@@ -25,7 +27,7 @@ class Router():
         if reader.at_eof():
           return
         route, *params = line.decode().rstrip().split()
-        ctx['params'] = params
+        ctx.params = params
         if route in self._routes:
           for handler in self._routes[route]:
             response = handler(ctx)

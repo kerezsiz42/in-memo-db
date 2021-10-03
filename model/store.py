@@ -33,27 +33,27 @@ class Store():
     self._users_of_dbs[db_name] = {username}
     self._dbs_of_users[username].add(db_name)
 
-  def delete_database(self, username: Username, db_name: DatabaseName) -> None:
-    if db_name not in self._dbs or username not in self._users_of_dbs[db_name]:
+  def delete_database(self, username: Username, db_to_delete: DatabaseName) -> None:
+    if db_to_delete not in self._dbs or username not in self._users_of_dbs[db_to_delete]:
       # idempotency
       return None
-    del self._dbs[db_name]
-    db_users = self._users_of_dbs[db_name]
+    del self._dbs[db_to_delete]
+    db_users = self._users_of_dbs[db_to_delete]
     for db_user in db_users:
       databases_of_user = self._dbs_of_users[db_user]
-      databases_of_user.remove(db_name)
-    del self._users_of_dbs[db_name]
+      databases_of_user.remove(db_to_delete)
+    del self._users_of_dbs[db_to_delete]
 
-  def delete_user(self, username: Username) -> None:
-    if username not in self._users:
+  def delete_user(self, user_to_delete: Username) -> None:
+    if user_to_delete not in self._users:
       # idempotency
       return None
-    del self._users[username]
-    dbs_of_user = self._dbs_of_users[username]
+    del self._users[user_to_delete]
+    dbs_of_user = self._dbs_of_users[user_to_delete]
     for database in dbs_of_user:
       users_of_db = self._users_of_dbs[database]
-      users_of_db.remove(username)
-    del self._dbs_of_users[username]
+      users_of_db.remove(user_to_delete)
+    del self._dbs_of_users[user_to_delete]
 
   def get_database_by_name(self, username: Username, db_name: DatabaseName) -> Database:
     if db_name not in self._dbs or username not in self._users_of_dbs[db_name]:
@@ -84,3 +84,13 @@ class Store():
       return False
     key_and_salt = self._users[username]
     return self._verify_password(password_to_verify=password.encode(), key_and_salt=key_and_salt)
+
+  def list_users_of_db(self, db_name: DatabaseName) -> Set[DatabaseName]:
+    if db_name not in self._dbs:
+      raise BaseException('database does not exist')
+    return self._users_of_dbs[db_name]
+
+  def list_dbs_of_user(self, username: Username) -> Set[Username]:
+    if username not in self._users:
+      raise BaseException('user does not exist')
+    return self._dbs_of_users[username]
