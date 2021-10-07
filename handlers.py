@@ -1,4 +1,5 @@
 from config import ROOT_USER
+from model.database import Key, Value
 from model.exception import InvalidCredentialsError, InvalidNumberOfParamsError, NoDbSelectedError, UserNotLoggedInError, UserUnauthorizedError
 from model.router import Context
 from model.store import DatabaseName, Username
@@ -6,8 +7,9 @@ from model.store import DatabaseName, Username
 
 def login(ctx: Context) -> str:
   try:
-    username, password = ctx.params
-  except ValueError:
+    username: Username = ctx.params[0]
+    password: str = ctx.params[1]
+  except IndexError:
     raise InvalidNumberOfParamsError
   if len(username) == 0 or len(password) == 0 or not ctx.store.authenticate_user(username, password):
     raise InvalidCredentialsError
@@ -17,7 +19,7 @@ def login(ctx: Context) -> str:
   return 'login: ok'
 
 
-def whoami(ctx: Context) -> str:
+def whoami(ctx: Context) -> Username:
   username = ctx.username
   if len(username) == 0:
     raise UserNotLoggedInError
@@ -27,7 +29,7 @@ def whoami(ctx: Context) -> str:
 def create_db(ctx: Context) -> str:
   try:
     new_db_name: DatabaseName = ctx.params[0]
-  except ValueError:
+  except IndexError:
     raise InvalidNumberOfParamsError
   username = ctx.username
   ctx.store.create_database(username=username, new_db_name=new_db_name)
@@ -45,24 +47,25 @@ def select_db(ctx: Context) -> str:
   return 'select_db: ok'
 
 
-def current_db(ctx: Context) -> str:
+def current_db(ctx: Context) -> DatabaseName:
   if len(ctx.database_name) == 0:
     raise NoDbSelectedError
   return ctx.database_name
 
 
-def get(ctx: Context) -> str:
+def get(ctx: Context) -> Value:
   try:
-    key, = ctx.params
-  except ValueError:
+    key: Key = ctx.params[0]
+  except IndexError:
     raise InvalidNumberOfParamsError
   return ctx.database.get(key=key)
 
 
 def put(ctx: Context) -> str:
   try:
-    key, value = ctx.params
-  except ValueError:
+    key: Key = ctx.params[0]
+    value: Value = ctx.params[1]
+  except IndexError:
     raise InvalidNumberOfParamsError
   ctx.database.put(key=key, value=value)
   return 'put: ok'
@@ -70,8 +73,8 @@ def put(ctx: Context) -> str:
 
 def delete(ctx: Context) -> str:
   try:
-    key, = ctx.params
-  except ValueError:
+    key: Key = ctx.params[0]
+  except IndexError:
     raise InvalidNumberOfParamsError
   ctx.database.delete(key=key)
   return 'delete: ok'
@@ -79,8 +82,9 @@ def delete(ctx: Context) -> str:
 
 def update(ctx: Context) -> str:
   try:
-    key, value = ctx.params
-  except ValueError:
+    key: Key = ctx.params[0]
+    value: Value = ctx.params[1]
+  except IndexError:
     raise InvalidNumberOfParamsError
   ctx.database.update(key=key, value=value)
   return 'update: ok'
