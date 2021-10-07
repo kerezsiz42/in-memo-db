@@ -11,6 +11,12 @@ from model.router import Router
 from model.store import Store
 
 
+async def ttl_coro(store: Store):
+  while True:
+    await asyncio.sleep(delay=1.0)
+    store.delete_expired_keys_from_dbs()
+
+
 async def main_coro():
   try:
     store = Store()
@@ -34,8 +40,8 @@ async def main_coro():
     server = await asyncio.start_server(lambda r, w: router(r, w, store), host=HOST, port=PORT)
     host, port = server.sockets[0].getsockname()
     logging.info(f'serving on {host}:{port}')
+    asyncio.create_task(ttl_coro(store=store))
     await server.start_serving()
-    # Other server wide tasks come here
     await asyncio.Event().wait()
   except asyncio.CancelledError:
     server.close()

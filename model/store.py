@@ -18,6 +18,10 @@ class Store():
     self._users_of_dbs: Dict[DatabaseName, Set[Username]] = dict()
     self._dbs_of_users: Dict[Username, Set[DatabaseName]] = dict()
 
+  def delete_expired_keys_from_dbs(self) -> None:
+    for _, db in self._dbs.items():
+      db.delete_expired_keys()
+
   def create_database(self, username: Username, new_db_name: DatabaseName) -> None:
     if username not in self._users:
       raise UserNotExistError

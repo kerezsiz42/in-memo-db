@@ -1,5 +1,4 @@
-# This codebase is compatible with python 3.8.10
-
+# This codebase has benn developed on Linux Python version 3.8.10 64-bit
 start:
 	python3 main.py
 start-container:

@@ -16,5 +16,6 @@ def load_config(filename=FILENAME):
         envvar_name, envvar_value = stripped_line.split('=')
         if envvar_name not in os.environ:
           os.environ[envvar_name] = envvar_value
+  # EAFP principle: https://docs.python.org/3/glossary.html
   except FileNotFoundError:
     pass
