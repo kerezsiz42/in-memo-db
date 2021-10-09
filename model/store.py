@@ -12,6 +12,8 @@ HashedPassword = bytes
 
 
 class Store():
+  """Server wide object that stores the collection of users, databases and their relations."""
+
   def __init__(self):
     self._dbs: Dict[DatabaseName, Database] = dict()
     self._users: Dict[Username, HashedPassword] = dict()
@@ -38,7 +40,6 @@ class Store():
 
   def delete_database(self, username: Username, db_to_delete: DatabaseName) -> None:
     if db_to_delete not in self._dbs or username not in self._users_of_dbs[db_to_delete]:
-      # idempotency
       return None
     del self._dbs[db_to_delete]
     db_users = self._users_of_dbs[db_to_delete]
@@ -49,7 +50,6 @@ class Store():
 
   def delete_user(self, user_to_delete: Username) -> None:
     if user_to_delete not in self._users:
-      # idempotency
       return None
     del self._users[user_to_delete]
     dbs_of_user = self._dbs_of_users[user_to_delete]

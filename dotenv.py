@@ -4,6 +4,7 @@ FILENAME = '.env'
 
 
 def load_config(filename=FILENAME):
+  """Loads variables from the specified .env file and sets them as environment vars if they are not set already."""
   try:
     with open(filename, 'r', encoding='UTF-8') as file:
       lines = file.readlines()
@@ -11,7 +12,7 @@ def load_config(filename=FILENAME):
         if line[0] == '#':
           continue
         stripped_line = line.rstrip()
-        if len(stripped_line) == 0:
+        if stripped_line == '':
           continue
         envvar_name, envvar_value = stripped_line.split('=')
         if envvar_name not in os.environ:

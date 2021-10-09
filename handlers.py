@@ -7,11 +7,11 @@ from model.store import DatabaseName, Username
 
 def login(ctx: Context) -> str:
   try:
-    username: Username = ctx.params[0]
-    password: str = ctx.params[1]
+    username = ctx.params[0]
+    password = ctx.params[1]
   except IndexError:
     raise InvalidNumberOfParamsError
-  if len(username) == 0 or len(password) == 0 or not ctx.store.authenticate_user(username, password):
+  if not ctx.store.authenticate_user(username, password):
     raise InvalidCredentialsError
   ctx.username = username
   ctx.database_name = str()
@@ -20,15 +20,14 @@ def login(ctx: Context) -> str:
 
 
 def whoami(ctx: Context) -> Username:
-  username = ctx.username
-  if len(username) == 0:
+  if ctx.username == '':
     raise UserNotLoggedInError
-  return username
+  return ctx.username
 
 
 def create_db(ctx: Context) -> str:
   try:
-    new_db_name: DatabaseName = ctx.params[0]
+    new_db_name = ctx.params[0]
   except IndexError:
     raise InvalidNumberOfParamsError
   username = ctx.username
@@ -39,7 +38,7 @@ def create_db(ctx: Context) -> str:
 
 def select_db(ctx: Context) -> str:
   try:
-    db_name: DatabaseName = ctx.params[0]
+    db_name = ctx.params[0]
   except IndexError:
     raise InvalidNumberOfParamsError
   ctx.database = ctx.store.get_database_by_name(username=ctx.username, db_name=db_name)
@@ -48,14 +47,14 @@ def select_db(ctx: Context) -> str:
 
 
 def current_db(ctx: Context) -> DatabaseName:
-  if len(ctx.database_name) == 0:
+  if ctx.database_name == '':
     raise NoDbSelectedError
   return ctx.database_name
 
 
 def get(ctx: Context) -> Value:
   try:
-    key: Key = ctx.params[0]
+    key = ctx.params[0]
   except IndexError:
     raise InvalidNumberOfParamsError
   return ctx.database.get(key=key)
@@ -63,19 +62,19 @@ def get(ctx: Context) -> Value:
 
 def put(ctx: Context) -> str:
   try:
-    key: Key = ctx.params[0]
-    value: Value = ctx.params[1]
+    key = ctx.params[0]
+    value = ctx.params[1]
   except IndexError:
     raise InvalidNumberOfParamsError
   ctx.database.put(key=key, value=value)
   try:
-    ttl_string: str = ctx.params[2]
-    if not ttl_string.isdigit():
-      raise InvalidTTLValueError
-    ttl: TTL = int(ttl_string)
-    ctx.database.set_ttl(key=key, ttl=ttl)
+    ttl_string = ctx.params[2]
   except IndexError:
     ctx.database.remove_ttl(key=key)
+  if not ttl_string.isdigit():
+    raise InvalidTTLValueError
+  ttl: TTL = int(ttl_string)
+  ctx.database.set_ttl(key=key, ttl=ttl)
   return 'put: ok'
 
 
@@ -90,19 +89,19 @@ def delete(ctx: Context) -> str:
 
 def update(ctx: Context) -> str:
   try:
-    key: Key = ctx.params[0]
-    value: Value = ctx.params[1]
+    key = ctx.params[0]
+    value = ctx.params[1]
   except IndexError:
     raise InvalidNumberOfParamsError
   ctx.database.update(key=key, value=value)
   try:
-    ttl_string: str = ctx.params[2]
-    if not ttl_string.isdigit():
-      raise InvalidTTLValueError
-    ttl: TTL = int(ttl_string)
-    ctx.database.set_ttl(key=key, ttl=ttl)
+    ttl_string = ctx.params[2]
   except IndexError:
     ctx.database.remove_ttl(key=key)
+  if not ttl_string.isdigit():
+    raise InvalidTTLValueError
+  ttl: TTL = int(ttl_string)
+  ctx.database.set_ttl(key=key, ttl=ttl)
   return 'update: ok'
 
 
@@ -110,7 +109,7 @@ def delete_user(ctx: Context) -> str:
   if ctx.username != ROOT_USER:
     raise UserUnauthorizedError
   try:
-    user_to_delete: Username = ctx.params[0]
+    user_to_delete = ctx.params[0]
   except IndexError:
     raise InvalidNumberOfParamsError
   ctx.store.delete_user(user_to_delete=user_to_delete)
@@ -119,7 +118,7 @@ def delete_user(ctx: Context) -> str:
 
 def delete_db(ctx: Context) -> str:
   try:
-    db_to_delete: DatabaseName = ctx.params[0]
+    db_to_delete = ctx.params[0]
   except IndexError:
     raise InvalidNumberOfParamsError
   ctx.store.delete_database(username=ctx.username, db_to_delete=db_to_delete)
@@ -141,8 +140,8 @@ def list_dbs(ctx: Context) -> str:
 
 def register_user(ctx: Context) -> str:
   try:
-    username_to_create: Username = ctx.params[0]
-    password: str = ctx.params[1]
+    username_to_create = ctx.params[0]
+    password = ctx.params[1]
   except IndexError:
     raise InvalidNumberOfParamsError
   ctx.store.create_user(username_to_create=username_to_create, password=password)
