@@ -1,14 +1,14 @@
-# import pickle
 import asyncio
 import os
 import signal
 import logging
 import sys
 
-from config import HOST, PORT, ROOT_PASSWORD, ROOT_USER
+from config import HOST, PORT
 from handlers import create_db, register_user, current_db, delete, delete_db, delete_user, get, list_dbs, list_users, login, put, select_db, update, whoami
 from model.router import Router
 from model.store import Store
+from model.state import State
 
 
 async def ttl_coro(store: Store):
@@ -19,10 +19,9 @@ async def ttl_coro(store: Store):
 
 async def main_coro():
   try:
-    store = Store()
-    # Load saved store data here
-    store.create_user(ROOT_USER, ROOT_PASSWORD)
-    router = Router()
+    store = State.load_store_from_disk()
+
+    router = Router(store=store, sequential_save_function=State.append_successful_command)
     router.use('login', [login])
     router.use('whoami', [whoami])
     router.use('register_user', [register_user])
@@ -37,7 +36,8 @@ async def main_coro():
     router.use('put', [whoami, current_db, put])
     router.use('delete', [whoami, current_db, delete])
     router.use('update', [whoami, current_db, update])
-    server = await asyncio.start_server(lambda r, w: router(r, w, store), host=HOST, port=PORT)
+
+    server = await asyncio.start_server(router, host=HOST, port=PORT)
     host, port = server.sockets[0].getsockname()
     logging.info(f'serving on {host}:{port}')
     asyncio.create_task(ttl_coro(store=store))
@@ -46,7 +46,7 @@ async def main_coro():
   except asyncio.CancelledError:
     server.close()
     await server.wait_closed()
-    # Save store data here
+    State.save_store_to_disk(store=store)
     logging.info('graceful shutdown: ok')
 
 if __name__ == '__main__':

@@ -20,7 +20,7 @@ a custom protocol built on top of TCP sockets.
   - [x] runs as a UNIX process
   - [x] graceful shutdown on SIGTERM or SIGINT
   - [ ] no production environment yet
-  - [x] logs out to stout
+  - [x] logs out to stdout
   - [ ] no admin processes
 - multiple distinct db
 - safe user and resource handling with authorization and authentication

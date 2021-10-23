@@ -1,5 +1,5 @@
 from config import ROOT_USER
-from model.database import TTL, Key, Value
+from model.database import Key, Value
 from model.exception import InvalidCredentialsError, InvalidNumberOfParamsError, InvalidTTLValueError, NoDbSelectedError, UserNotLoggedInError, UserUnauthorizedError
 from model.router import Context
 from model.store import DatabaseName, Username
@@ -71,10 +71,11 @@ def put(ctx: Context) -> str:
     ttl_string = ctx.params[2]
   except IndexError:
     ctx.database.remove_ttl(key=key)
-  if not ttl_string.isdigit():
-    raise InvalidTTLValueError
-  ttl: TTL = int(ttl_string)
-  ctx.database.set_ttl(key=key, ttl=ttl)
+  else:
+    if not ttl_string.isdigit():
+      raise InvalidTTLValueError
+    ttl = int(ttl_string)
+    ctx.database.set_ttl(key=key, ttl=ttl)
   return 'put: ok'
 
 
@@ -98,10 +99,11 @@ def update(ctx: Context) -> str:
     ttl_string = ctx.params[2]
   except IndexError:
     ctx.database.remove_ttl(key=key)
-  if not ttl_string.isdigit():
-    raise InvalidTTLValueError
-  ttl: TTL = int(ttl_string)
-  ctx.database.set_ttl(key=key, ttl=ttl)
+  else:
+    if not ttl_string.isdigit():
+      raise InvalidTTLValueError
+    ttl = int(ttl_string)
+    ctx.database.set_ttl(key=key, ttl=ttl)
   return 'update: ok'
 
 
