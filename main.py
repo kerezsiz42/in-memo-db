@@ -8,7 +8,6 @@ from config import HOST, PORT
 from handlers import create_db, register_user, current_db, delete, delete_db, delete_user, get, list_dbs, list_users, login, put, select_db, update, whoami
 from model.router import Router
 from model.store import Store
-from model.state import State
 
 
 async def ttl_coro(store: Store):
@@ -19,9 +18,10 @@ async def ttl_coro(store: Store):
 
 async def main_coro():
   try:
-    store = State.load_store_from_disk()
+    store = Store()
+    store.load_state_from_disk()
 
-    router = Router(store=store, sequential_save_function=State.append_successful_command)
+    router = Router(store=store)
     router.use('login', [login])
     router.use('whoami', [whoami])
     router.use('register_user', [register_user])
@@ -46,7 +46,7 @@ async def main_coro():
   except asyncio.CancelledError:
     server.close()
     await server.wait_closed()
-    State.save_store_to_disk(store=store)
+    store.save_state_to_disk()
     logging.info('graceful shutdown: ok')
 
 if __name__ == '__main__':

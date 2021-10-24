@@ -2,11 +2,13 @@
 from typing import Dict, NewType, Set
 import os
 import hashlib
-from config import PBKDF2_HMAC_ITERATIONS
+import pickle
+from config import PBKDF2_HMAC_ITERATIONS, ROOT_PASSWORD, ROOT_USER
 from model.database import Database
 from model.exception import DbAlreadyExistsError, DbNotExistError, UserNotExistError, UsernameAlreadyTakenError
 from model.persistent_dictionary import PersistentDictionary
-from constants import USERS_JSON_FILENAME
+from constants import SEQUENTIAL_SAVE_FILENAME, STORE_FILENAME, USERS_JSON_FILENAME
+import logging
 
 DatabaseName = NewType('DatabaseName', str)
 Username = NewType('Username', str)
@@ -21,6 +23,11 @@ class Store():
     self._users = PersistentDictionary(filepath=USERS_JSON_FILENAME)
     self._users_of_dbs: Dict[DatabaseName, Set[Username]] = dict()
     self._dbs_of_users: Dict[Username, Set[DatabaseName]] = dict()
+    try:
+      self.create_user(Username(ROOT_USER), ROOT_PASSWORD)
+      logging.info('registered root user from env vars')
+    except BaseException:
+      logging.info('root user was already registered')
 
   def delete_expired_keys_from_dbs(self) -> None:
     "Calls delete expired keys in all existing databses."
@@ -35,13 +42,14 @@ class Store():
     if new_db_name in self._dbs:
       raise DbAlreadyExistsError
     self._dbs[new_db_name] = Database()
+    self._users_of_dbs[new_db_name] = set()
     self.add_user_to_owners(username=username, db_name=new_db_name)
 
   def add_user_to_owners(self, username: Username, db_name: DatabaseName) -> None:
     "Sets user as the owner of the specified database if it exists."
     if username not in self._users:
       raise UserNotExistError
-    self._users_of_dbs[db_name] = {username}
+    self._users_of_dbs[db_name].add(username)
     self._dbs_of_users[username].add(db_name)
 
   def delete_database(self, username: Username, db_to_delete: DatabaseName) -> None:
@@ -122,3 +130,46 @@ class Store():
     if username not in self._users:
       raise UserNotExistError
     return self._dbs_of_users[username]
+
+  def load_sequential_save_file(self) -> None:
+    try:
+      with open(SEQUENTIAL_SAVE_FILENAME, 'r') as file:
+        for line in file:
+          print(line, end='')
+    except FileNotFoundError:
+      logging.info(f'no {SEQUENTIAL_SAVE_FILENAME} file found')
+    else:
+      logging.info(f'loaded {SEQUENTIAL_SAVE_FILENAME}')
+      self.delete_sequential_save_file()
+
+  def delete_sequential_save_file(self) -> None:
+    try:
+      os.remove(SEQUENTIAL_SAVE_FILENAME)
+    except OSError:
+      logging.info(f'no {SEQUENTIAL_SAVE_FILENAME} file found')
+    else:
+      logging.info(f'deleted {SEQUENTIAL_SAVE_FILENAME}')
+
+  def load_state_from_disk(self) -> None:
+    try:
+      with open(STORE_FILENAME, 'rb') as file:
+        store = pickle.load(file=file)
+    except FileNotFoundError:
+      logging.info(f'no {STORE_FILENAME} file found')
+    else:
+      self._dbs = store._dbs
+      self._users_of_dbs = store._users_of_dbs
+      self._dbs_of_users = store._dbs_of_users
+      logging.info(f'state loaded from {STORE_FILENAME}')
+    finally:
+      self.load_sequential_save_file()
+
+  def save_state_to_disk(self) -> None:
+    with open(STORE_FILENAME, 'wb') as file:
+      pickle.dump(self, file=file)
+      logging.info(f'state saved in {STORE_FILENAME}')
+    self.delete_sequential_save_file()
+
+  def append_successful_command(self, line: str) -> None:
+    with open(SEQUENTIAL_SAVE_FILENAME, 'a') as file:
+      file.write(line + '\n')

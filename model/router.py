@@ -12,10 +12,9 @@ Handler = Callable[[Context], str]
 class Router():
   "Stores routes and runs the appropiate handlers when called."
 
-  def __init__(self, store: Store, sequential_save_function: Callable[[str], None]):
+  def __init__(self, store: Store):
     self._routes: Dict[str, List[Handler]] = dict()
     self._store: Store = store
-    self._sequential_save_function: Callable[[str], None] = sequential_save_function
 
   def use(self, route: str, handler_list: List[Handler]):
     "Sets a list of handlers pertaining to this route name of the router object."
@@ -51,7 +50,7 @@ class Router():
             handler(ctx)
         if response == None:
           raise InternalServerError
-        self._sequential_save_function(stripped_decoded_line)
+        self._store.append_successful_command(stripped_decoded_line)
       except BaseException as err:
         logging.warning(err)
         response = str(err)
