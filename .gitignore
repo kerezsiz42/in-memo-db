@@ -1,3 +1,5 @@
 __pycache__/
 .mypy_cache/
-state_files/
+state_files/users.json
+state_files/store.pickle
+state_files/sequential_save.txt

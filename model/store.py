@@ -5,6 +5,8 @@ import hashlib
 from config import PBKDF2_HMAC_ITERATIONS
 from model.database import Database
 from model.exception import DbAlreadyExistsError, DbNotExistError, UserNotExistError, UsernameAlreadyTakenError
+from model.persistent_dictionary import PersistentDictionary
+from constants import USERS_JSON_FILENAME
 
 DatabaseName = NewType('DatabaseName', str)
 Username = NewType('Username', str)
@@ -16,7 +18,7 @@ class Store():
 
   def __init__(self):
     self._dbs: Dict[DatabaseName, Database] = dict()
-    self._users: Dict[Username, KeyAndSalt] = dict()
+    self._users = PersistentDictionary(filepath=USERS_JSON_FILENAME)
     self._users_of_dbs: Dict[DatabaseName, Set[Username]] = dict()
     self._dbs_of_users: Dict[Username, Set[DatabaseName]] = dict()
 
@@ -98,14 +100,15 @@ class Store():
     "Creates a new user if it does not exist already. Raises UsernameAlreadyTakenError otherwise."
     if username_to_create in self._users:
       raise UsernameAlreadyTakenError
-    self._users[username_to_create] = self._hash_password(password.encode())
+    # TODO: check for invalid characters
+    self._users[username_to_create] = self._hash_password(password.encode()).hex()
     self._dbs_of_users[username_to_create] = set()
 
   def authenticate_user(self, username: Username, password: str) -> bool:
     "Returns True if user with the provided username exists and the given password string is right."
     if username not in self._users:
       return False
-    key_and_salt = self._users[username]
+    key_and_salt = bytes.fromhex(self._users[username])
     return self._verify_password(password_to_verify=password.encode(), key_and_salt=key_and_salt)
 
   def list_users_of_db(self, db_name: DatabaseName) -> Set[Username]:

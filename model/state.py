@@ -3,11 +3,7 @@ import pickle
 import os
 from config import ROOT_PASSWORD, ROOT_USER
 from model.store import Store
-
-
-STATE_FILES_DIRNAME = 'state_files'
-STORE_FILENAME = f'{STATE_FILES_DIRNAME}/store.pickle'
-SEQUENTIAL_SAVE_FILENAME = f'{STATE_FILES_DIRNAME}/sequential_save.txt'
+from constants import SEQUENTIAL_SAVE_FILENAME, STORE_FILENAME
 
 
 class State:
