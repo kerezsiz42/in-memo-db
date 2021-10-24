@@ -5,7 +5,7 @@ import logging
 import sys
 
 from config import HOST, PORT
-from handlers import create_db, register_user, current_db, delete, delete_db, delete_user, get, list_dbs, list_users, login, put, select_db, update, whoami
+from handlers import add_user_to_owners, create_db, register_user, current_db, delete, delete_db, delete_user, get, list_dbs, list_users, login, put, select_db, update, whoami
 from model.router import Router
 from model.store import Store
 
@@ -25,6 +25,7 @@ async def main_coro():
     router.use('login', [login])
     router.use('whoami', [whoami])
     router.use('register_user', [register_user])
+    router.use('add_user_to_owners', [whoami, add_user_to_owners])
     router.use('create_db', [whoami, create_db])
     router.use('select_db', [whoami, select_db])
     router.use('delete_db', [whoami, delete_db])

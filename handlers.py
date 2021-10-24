@@ -30,10 +30,21 @@ def create_db(ctx: Context) -> str:
     new_db_name = ctx.params[0]
   except IndexError:
     raise InvalidNumberOfParamsError
-  username = ctx.username
-  ctx.store.create_database(username=username, new_db_name=new_db_name)
+  ctx.store.create_database(username=ctx.username, new_db_name=new_db_name)
   ctx.store.add_user_to_owners(username=ROOT_USER, db_name=new_db_name)
   return 'create_db: ok'
+
+
+def add_user_to_owners(ctx: Context) -> str:
+  try:
+    new_owner_username = ctx.params[0]
+    db_name = ctx.params[1]
+  except IndexError:
+    raise InvalidNumberOfParamsError
+  if ctx.username != ROOT_USER:
+    raise UserUnauthorizedError
+  ctx.store.add_user_to_owners(username=new_owner_username, db_name=db_name)
+  return 'add_user_to_owners: ok'
 
 
 def select_db(ctx: Context) -> str:
@@ -131,13 +142,11 @@ def delete_db(ctx: Context) -> str:
 
 
 def list_users(ctx: Context) -> str:
-  set_of_users = ctx.store.list_users_of_db(db_name=ctx.database_name)
-  return str(list(set_of_users))
+  return str(ctx.store.list_users_of_db(db_name=ctx.database_name))
 
 
 def list_dbs(ctx: Context) -> str:
-  set_of_dbs = ctx.store.list_dbs_of_user(username=ctx.username)
-  return str(list(set_of_dbs))
+  return str(ctx.store.list_dbs_of_user(username=ctx.username))
 
 
 def register_user(ctx: Context) -> str:

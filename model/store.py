@@ -1,5 +1,5 @@
 
-from typing import Dict, NewType, Set
+from typing import Dict, List, NewType, Set
 import os
 import hashlib
 import pickle
@@ -21,8 +21,8 @@ class Store():
   def __init__(self):
     self._dbs: Dict[DatabaseName, Database] = dict()
     self._users = PersistentDictionary(filepath=USERS_JSON_FILENAME)
-    self._users_of_dbs: Dict[DatabaseName, Set[Username]] = dict()
-    self._dbs_of_users: Dict[Username, Set[DatabaseName]] = dict()
+    self._users_of_dbs: Dict[DatabaseName, List[Username]] = dict()
+    self._dbs_of_users: Dict[Username, List[DatabaseName]] = dict()
     try:
       self.create_user(Username(ROOT_USER), ROOT_PASSWORD)
       logging.info('registered root user from env vars')
@@ -42,15 +42,16 @@ class Store():
     if new_db_name in self._dbs:
       raise DbAlreadyExistsError
     self._dbs[new_db_name] = Database()
-    self._users_of_dbs[new_db_name] = set()
+    self._users_of_dbs[new_db_name] = list()
     self.add_user_to_owners(username=username, db_name=new_db_name)
 
   def add_user_to_owners(self, username: Username, db_name: DatabaseName) -> None:
     "Sets user as the owner of the specified database if it exists."
     if username not in self._users:
       raise UserNotExistError
-    self._users_of_dbs[db_name].add(username)
-    self._dbs_of_users[username].add(db_name)
+    if username not in self._users_of_dbs[db_name]:
+      self._users_of_dbs[db_name].append(username)
+      self._dbs_of_users[username].append(db_name)
 
   def delete_database(self, username: Username, db_to_delete: DatabaseName) -> None:
     """
@@ -110,7 +111,7 @@ class Store():
       raise UsernameAlreadyTakenError
     # TODO: check for invalid characters
     self._users[username_to_create] = self._hash_password(password.encode()).hex()
-    self._dbs_of_users[username_to_create] = set()
+    self._dbs_of_users[username_to_create] = list()
 
   def authenticate_user(self, username: Username, password: str) -> bool:
     "Returns True if user with the provided username exists and the given password string is right."
@@ -119,13 +120,13 @@ class Store():
     key_and_salt = bytes.fromhex(self._users[username])
     return self._verify_password(password_to_verify=password.encode(), key_and_salt=key_and_salt)
 
-  def list_users_of_db(self, db_name: DatabaseName) -> Set[Username]:
+  def list_users_of_db(self, db_name: DatabaseName) -> List[Username]:
     "Retreives a set of usernames of whom the database is owned by."
     if db_name not in self._dbs:
       raise DbNotExistError
     return self._users_of_dbs[db_name]
 
-  def list_dbs_of_user(self, username: Username) -> Set[DatabaseName]:
+  def list_dbs_of_user(self, username: Username) -> List[DatabaseName]:
     "Retreives a set of database names owned by the specified user."
     if username not in self._users:
       raise UserNotExistError
