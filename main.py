@@ -19,7 +19,7 @@ async def ttl_coro(store: Store):
 async def main_coro():
   try:
     store = Store()
-    store.load_state_from_disk()
+    store.load_dbs_from_disk()
 
     router = Router(store=store)
     router.use('login', [login])
@@ -37,7 +37,6 @@ async def main_coro():
     router.use('put', [whoami, current_db, put])
     router.use('delete', [whoami, current_db, delete])
     router.use('update', [whoami, current_db, update])
-
     server = await asyncio.start_server(router, host=HOST, port=PORT)
     host, port = server.sockets[0].getsockname()
     logging.info(f'serving on {host}:{port}')
@@ -47,7 +46,7 @@ async def main_coro():
   except asyncio.CancelledError:
     server.close()
     await server.wait_closed()
-    store.save_state_to_disk()
+    store.save_dbs_to_disk()
     logging.info('graceful shutdown: ok')
 
 if __name__ == '__main__':

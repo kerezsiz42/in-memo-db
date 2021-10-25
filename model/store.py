@@ -1,14 +1,15 @@
-
-from typing import Dict, List, NewType, Set
 import os
 import hashlib
 import pickle
+import logging
+from typing import Dict, List, NewType
 from config import PBKDF2_HMAC_ITERATIONS, ROOT_PASSWORD, ROOT_USER
 from model.database import Database
-from model.exception import DbAlreadyExistsError, DbNotExistError, UserNotExistError, UsernameAlreadyTakenError
 from model.persistent_dictionary import PersistentDictionary
-from constants import SEQUENTIAL_SAVE_FILENAME, STORE_FILENAME, USERS_JSON_FILENAME
-import logging
+from model.custom_time import custom_time
+from constants import DBS_OF_USERS_JSON_FILENAME, SEQUENTIAL_SAVE_FILENAME, DBS_FILENAME, USERS_JSON_FILENAME, USERS_OF_DBS_JSON_FILENAME
+from model.exception import DbAlreadyExistsError, DbNotExistError, UserNotExistError, UsernameAlreadyTakenError
+
 
 DatabaseName = NewType('DatabaseName', str)
 Username = NewType('Username', str)
@@ -21,8 +22,8 @@ class Store():
   def __init__(self):
     self._dbs: Dict[DatabaseName, Database] = dict()
     self._users = PersistentDictionary(filepath=USERS_JSON_FILENAME)
-    self._users_of_dbs: Dict[DatabaseName, List[Username]] = dict()
-    self._dbs_of_users: Dict[Username, List[DatabaseName]] = dict()
+    self._users_of_dbs = PersistentDictionary(filepath=USERS_OF_DBS_JSON_FILENAME)
+    self._dbs_of_users = PersistentDictionary(filepath=DBS_OF_USERS_JSON_FILENAME)
     try:
       self.create_user(Username(ROOT_USER), ROOT_PASSWORD)
       logging.info('registered root user from env vars')
@@ -50,8 +51,8 @@ class Store():
     if username not in self._users:
       raise UserNotExistError
     if username not in self._users_of_dbs[db_name]:
-      self._users_of_dbs[db_name].append(username)
-      self._dbs_of_users[username].append(db_name)
+      self._users_of_dbs[db_name] = [username, *self._users_of_dbs[db_name]]
+      self._dbs_of_users[username] = [db_name, *self._dbs_of_users[username]]
 
   def delete_database(self, username: Username, db_to_delete: DatabaseName) -> None:
     """
@@ -136,7 +137,10 @@ class Store():
     try:
       with open(SEQUENTIAL_SAVE_FILENAME, 'r') as file:
         for line in file:
-          print(line, end='')
+          exec_time_str, command_str, = line.rstrip().split('\t')
+          custom_time.time = int(exec_time_str)
+          command = command_str.split()
+        custom_time.time = None
     except FileNotFoundError:
       logging.info(f'no {SEQUENTIAL_SAVE_FILENAME} file found')
     else:
@@ -151,26 +155,23 @@ class Store():
     else:
       logging.info(f'deleted {SEQUENTIAL_SAVE_FILENAME}')
 
-  def load_state_from_disk(self) -> None:
+  def load_dbs_from_disk(self) -> None:
     try:
-      with open(STORE_FILENAME, 'rb') as file:
-        store = pickle.load(file=file)
+      with open(DBS_FILENAME, 'rb') as file:
+        self._dbs = pickle.load(file=file)
     except FileNotFoundError:
-      logging.info(f'no {STORE_FILENAME} file found')
+      logging.info(f'no {DBS_FILENAME} file found')
     else:
-      self._dbs = store._dbs
-      self._users_of_dbs = store._users_of_dbs
-      self._dbs_of_users = store._dbs_of_users
-      logging.info(f'state loaded from {STORE_FILENAME}')
+      logging.info(f'state loaded from {DBS_FILENAME}')
     finally:
       self.load_sequential_save_file()
 
-  def save_state_to_disk(self) -> None:
-    with open(STORE_FILENAME, 'wb') as file:
-      pickle.dump(self, file=file)
-      logging.info(f'state saved in {STORE_FILENAME}')
+  def save_dbs_to_disk(self) -> None:
+    with open(DBS_FILENAME, 'wb') as file:
+      pickle.dump(self._dbs, file=file)
+      logging.info(f'state saved in {DBS_FILENAME}')
     self.delete_sequential_save_file()
 
   def append_successful_command(self, line: str) -> None:
     with open(SEQUENTIAL_SAVE_FILENAME, 'a') as file:
-      file.write(line + '\n')
+      file.write(f'{custom_time.time}\t{line}\n')

@@ -1,5 +1,7 @@
 __pycache__/
 .mypy_cache/
 state_files/users.json
-state_files/store.pickle
+state_files/dbs.pickle
 state_files/sequential_save.txt
+state_files/dbs_of_users.json
+state_files/users_of_dbs.json

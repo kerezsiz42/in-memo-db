@@ -2,7 +2,7 @@ from typing import Callable, Dict, List
 from asyncio import StreamReader, StreamWriter
 import logging
 from model.context import Context
-from model.exception import InternalServerError, InvalidCommandError
+from model.exception import CustomException, InternalServerError, InvalidCommandError
 from model.store import Store
 
 
@@ -51,7 +51,7 @@ class Router():
         if response == None:
           raise InternalServerError
         self._store.append_successful_command(stripped_decoded_line)
-      except BaseException as err:
+      except CustomException as err:
         logging.warning(err)
         response = str(err)
       finally:

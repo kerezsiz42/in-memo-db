@@ -1,5 +1,5 @@
 from typing import Dict, NewType
-import time
+from model.custom_time import custom_time
 from model.exception import InvalidKeyError
 
 Key = NewType('Key', str)
@@ -19,7 +19,7 @@ class Database():
     # We create a list from the iterable keys in order to prevent RuntimeError from getting raised,
     # since we don't care whether the dictionary changes size during iteration.
     for key in list(self._expire_at_epoch_by_keys.keys()):
-      if int(time.time()) > self._expire_at_epoch_by_keys[key]:
+      if custom_time.time > self._expire_at_epoch_by_keys[key]:
         self.delete(key=key)
         self.remove_ttl(key=key)
 
@@ -29,7 +29,7 @@ class Database():
 
   def set_ttl(self, key: Key, ttl: int) -> None:
     "Updates or sets the new expiration time for the given key to current time + ttl seconds."
-    self._expire_at_epoch_by_keys[key] = ExpireAtEpoch(int(time.time()) + ttl)
+    self._expire_at_epoch_by_keys[key] = ExpireAtEpoch(custom_time.time + ttl)
 
   def get(self, key: Key) -> Value:
     """

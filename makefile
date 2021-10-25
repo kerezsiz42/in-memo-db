@@ -7,6 +7,9 @@ test:
 	python3 -m unittest -v
 manual-test:
 	nc localhost 8888
+clean:
+	rm -rf state_files/*
+	echo "This folder has to be present in the folder structure, because the state is saved here." > state_files/README.md
 
 # e2e-test
 
