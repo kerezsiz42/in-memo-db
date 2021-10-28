@@ -2,12 +2,11 @@ import os
 import hashlib
 import pickle
 import logging
-from typing import Dict, List, NewType
+from typing import Dict, List, NewType, cast
 from config import PBKDF2_HMAC_ITERATIONS, ROOT_PASSWORD, ROOT_USER
 from model.database import Database
 from model.persistent_dictionary import PersistentDictionary
-from model.custom_time import custom_time
-from constants import DBS_OF_USERS_JSON_FILENAME, SEQUENTIAL_SAVE_FILENAME, DBS_FILENAME, USERS_JSON_FILENAME, USERS_OF_DBS_JSON_FILENAME
+from constants import DBS_OF_USERS_JSON_FILENAME, DBS_FILENAME, USERS_JSON_FILENAME, USERS_OF_DBS_JSON_FILENAME
 from model.exception import DbAlreadyExistsError, DbNotExistError, UserNotExistError, UsernameAlreadyTakenError
 
 
@@ -19,11 +18,11 @@ KeyAndSalt = NewType('KeyAndSalt', bytes)
 class Store():
   "Server wide object that stores the collection of users, databases and their relations."
 
-  def __init__(self):
+  def __init__(self) -> None:
     self._dbs: Dict[DatabaseName, Database] = dict()
-    self._users = PersistentDictionary(filepath=USERS_JSON_FILENAME)
-    self._users_of_dbs = PersistentDictionary(filepath=USERS_OF_DBS_JSON_FILENAME)
-    self._dbs_of_users = PersistentDictionary(filepath=DBS_OF_USERS_JSON_FILENAME)
+    self._users = PersistentDictionary[Username, str](filepath=USERS_JSON_FILENAME)
+    self._users_of_dbs = PersistentDictionary[DatabaseName, List[Username]](filepath=USERS_OF_DBS_JSON_FILENAME)
+    self._dbs_of_users = PersistentDictionary[Username, List[DatabaseName]](filepath=DBS_OF_USERS_JSON_FILENAME)
     try:
       self.create_user(Username(ROOT_USER), ROOT_PASSWORD)
       logging.info('registered root user from env vars')
@@ -125,35 +124,15 @@ class Store():
     "Retreives a set of usernames of whom the database is owned by."
     if db_name not in self._dbs:
       raise DbNotExistError
-    return self._users_of_dbs[db_name]
+    # Mypy false positive: returning any from function declared to return ...
+    return cast(List[Username], self._users_of_dbs[db_name])
 
   def list_dbs_of_user(self, username: Username) -> List[DatabaseName]:
     "Retreives a set of database names owned by the specified user."
     if username not in self._users:
       raise UserNotExistError
-    return self._dbs_of_users[username]
-
-  def load_sequential_save_file(self) -> None:
-    try:
-      with open(SEQUENTIAL_SAVE_FILENAME, 'r') as file:
-        for line in file:
-          exec_time_str, command_str, = line.rstrip().split('\t')
-          custom_time.time = int(exec_time_str)
-          command = command_str.split()
-        custom_time.time = None
-    except FileNotFoundError:
-      logging.info(f'no {SEQUENTIAL_SAVE_FILENAME} file found')
-    else:
-      logging.info(f'loaded {SEQUENTIAL_SAVE_FILENAME}')
-      self.delete_sequential_save_file()
-
-  def delete_sequential_save_file(self) -> None:
-    try:
-      os.remove(SEQUENTIAL_SAVE_FILENAME)
-    except OSError:
-      logging.info(f'no {SEQUENTIAL_SAVE_FILENAME} file found')
-    else:
-      logging.info(f'deleted {SEQUENTIAL_SAVE_FILENAME}')
+    # Mypy false positive: returning any from function declared to return ...
+    return cast(List[DatabaseName], self._dbs_of_users[username])
 
   def load_dbs_from_disk(self) -> None:
     try:
@@ -163,15 +142,8 @@ class Store():
       logging.info(f'no {DBS_FILENAME} file found')
     else:
       logging.info(f'state loaded from {DBS_FILENAME}')
-    finally:
-      self.load_sequential_save_file()
 
   def save_dbs_to_disk(self) -> None:
     with open(DBS_FILENAME, 'wb') as file:
       pickle.dump(self._dbs, file=file)
       logging.info(f'state saved in {DBS_FILENAME}')
-    self.delete_sequential_save_file()
-
-  def append_successful_command(self, line: str) -> None:
-    with open(SEQUENTIAL_SAVE_FILENAME, 'a') as file:
-      file.write(f'{custom_time.time}\t{line}\n')

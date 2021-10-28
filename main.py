@@ -5,41 +5,28 @@ import logging
 import sys
 
 from config import HOST, PORT
-from handlers import add_user_to_owners, create_db, register_user, current_db, delete, delete_db, delete_user, get, list_dbs, list_users, login, put, select_db, update, whoami
+
 from model.router import Router
 from model.store import Store
 
 
-async def ttl_coro(store: Store):
+async def ttl_coro(store: Store) -> None:
   while True:
     await asyncio.sleep(delay=1.0)
     store.delete_expired_keys_from_dbs()
 
 
-async def main_coro():
+async def main_coro() -> None:
   try:
     store = Store()
     store.load_dbs_from_disk()
 
     router = Router(store=store)
-    router.use('login', [login])
-    router.use('whoami', [whoami])
-    router.use('register_user', [register_user])
-    router.use('add_user_to_owners', [whoami, add_user_to_owners])
-    router.use('create_db', [whoami, create_db])
-    router.use('select_db', [whoami, select_db])
-    router.use('delete_db', [whoami, delete_db])
-    router.use('delete_user', [whoami, delete_user])
-    router.use('list_users', [whoami, list_users])
-    router.use('list_dbs', [whoami, list_dbs])
-    router.use('current_db', [whoami, current_db])
-    router.use('get', [whoami, current_db, get])
-    router.use('put', [whoami, current_db, put])
-    router.use('delete', [whoami, current_db, delete])
-    router.use('update', [whoami, current_db, update])
+    router.load_sequential_save_file()
+
     server = await asyncio.start_server(router, host=HOST, port=PORT)
-    host, port = server.sockets[0].getsockname()
-    logging.info(f'serving on {host}:{port}')
+
+    logging.info(f'serving on {HOST}:{PORT}')
     asyncio.create_task(ttl_coro(store=store))
     await server.start_serving()
     await asyncio.Event().wait()
@@ -47,6 +34,7 @@ async def main_coro():
     server.close()
     await server.wait_closed()
     store.save_dbs_to_disk()
+    router.delete_sequential_save_file()
     logging.info('graceful shutdown: ok')
 
 if __name__ == '__main__':

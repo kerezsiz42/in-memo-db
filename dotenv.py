@@ -3,7 +3,7 @@ import os
 FILENAME = '.env'
 
 
-def load_config(filename=FILENAME):
+def load_config(filename: str = FILENAME) -> None:
   """Loads variables from the specified .env file and sets them as environment vars if they are not set already."""
   try:
     with open(filename, 'r', encoding='UTF-8') as file:

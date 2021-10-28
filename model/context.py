@@ -6,7 +6,13 @@ from model.database import Database
 class Context():
   "A temporary storage for the connected clients to store their state during the lifetime of the connection."
 
-  def __init__(self, username: Username, database_name: DatabaseName, database: Optional[Database], store: Store, params: List[str]):
+  def __init__(self,
+               store: Store,
+               username: Username = str(),
+               database_name: DatabaseName = str(),
+               database: Optional[Database] = None,
+               params: List[str] = list()
+               ):
     self._username = username
     self._database_name = database_name
     self._database = database
@@ -54,6 +60,6 @@ class Context():
     return self._params
 
   @params.setter
-  def params(self, params: List[str]):
+  def params(self, params: List[str]) -> None:
     "Sets the list of string parameters provided by the user after the command name."
     self._params = params

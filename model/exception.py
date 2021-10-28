@@ -3,7 +3,7 @@ class CustomException(Exception):
     self.message = message
     super().__init__(self.message)
 
-  def __str__(self):
+  def __str__(self) -> str:
     return str(self.message)
 
 
@@ -19,4 +19,3 @@ UserNotLoggedInError = CustomException('you must be logged in')
 NoDbSelectedError = CustomException('no database selected')
 UserUnauthorizedError = CustomException('only root user can do this action')
 InvalidTTLValueError = CustomException('invalid ttl: should be integer')
-InternalServerError = CustomException('internal server error')

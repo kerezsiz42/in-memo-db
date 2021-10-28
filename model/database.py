@@ -10,7 +10,7 @@ ExpireAtEpoch = NewType('ExpireAtEpoch', int)
 class Database():
   "Single self-contained storage object that the user can select and manipulate through the handlers."
 
-  def __init__(self):
+  def __init__(self) -> None:
     self._dictionary: Dict[Key, Value] = dict()
     self._expire_at_epoch_by_keys: Dict[Key, ExpireAtEpoch] = dict()
 
