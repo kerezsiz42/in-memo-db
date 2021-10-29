@@ -1,11 +1,10 @@
+#!/usr/bin/python3.8
 import asyncio
 import os
 import signal
 import logging
 import sys
-
 from config import HOST, PORT
-
 from model.router import Router
 from model.store import Store
 
@@ -20,12 +19,9 @@ async def main_coro() -> None:
   try:
     store = Store()
     store.load_dbs_from_disk()
-
     router = Router(store=store)
     router.load_sequential_save_file()
-
     server = await asyncio.start_server(router, host=HOST, port=PORT)
-
     logging.info(f'serving on {HOST}:{PORT}')
     asyncio.create_task(ttl_coro(store=store))
     await server.start_serving()

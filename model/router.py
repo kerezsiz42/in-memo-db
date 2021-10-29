@@ -33,7 +33,7 @@ class Route(Enum):
   update = 'update'
 
 
-Handler = Callable[[Context], str]
+Handler = Callable[[Context], None]
 
 
 class Router():
@@ -69,7 +69,6 @@ class Router():
     logging.info('new client connected')
     ctx = Context(store=self._store)
     while True:
-      response = None
       line = await reader.readline()
       if reader.at_eof():
         logging.info('client closed connection')
@@ -83,19 +82,20 @@ class Router():
         except KeyError:
           raise InvalidCommandError
         for handler in self._routes[route]:
-          response = handler(ctx)
+          handler(ctx)
       except CustomException as err:
         logging.warning(err)
-        response = str(err)
+        ctx.response = str(err)
       except Exception as err:
         logging.warning(err)
         print(err)
-        response = 'internal server error'
+        ctx.response = 'internal server error'
       else:
         self.try_to_save_successful_command(ctx.database_name, route, params)
       finally:
-        writer.write(f'{response}\n'.encode())
+        writer.write(f'{ctx.response}\n'.encode())
         await writer.drain()
+        ctx.response = None
 
   def load_sequential_save_file(self) -> None:
     try:

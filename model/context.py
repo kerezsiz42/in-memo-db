@@ -3,11 +3,12 @@ from model.store import DatabaseName, Store, Username
 from model.database import Database
 
 
-class Context():
+class Context:
   "A temporary storage for the connected clients to store their state during the lifetime of the connection."
 
   def __init__(self,
                store: Store,
+               response: str = str(),
                username: Username = str(),
                database_name: DatabaseName = str(),
                database: Optional[Database] = None,
@@ -18,6 +19,7 @@ class Context():
     self._database = database
     self._store = store
     self._params = params
+    self._response = response
 
   @property
   def username(self) -> Username:
@@ -63,3 +65,13 @@ class Context():
   def params(self, params: List[str]) -> None:
     "Sets the list of string parameters provided by the user after the command name."
     self._params = params
+
+  @property
+  def response(self) -> str:
+    "Returns the response string."
+    return self._response
+
+  @response.setter
+  def response(self, response: str) -> None:
+    "Sets the response string to the given string."
+    self._response = response

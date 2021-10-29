@@ -1,11 +1,11 @@
 from config import ROOT_USER
-from model.database import Key, Value
+from model.database import Key
 from model.exception import InvalidCredentialsError, InvalidNumberOfParamsError, InvalidTTLValueError, NoDbSelectedError, UserNotLoggedInError, UserUnauthorizedError
 from model.router import Context
-from model.store import DatabaseName, Username
+from model.store import DatabaseName
 
 
-def login(ctx: Context) -> str:
+def login(ctx: Context) -> None:
   try:
     username = ctx.params[0]
     password = ctx.params[1]
@@ -16,26 +16,26 @@ def login(ctx: Context) -> str:
   ctx.username = username
   ctx.database_name = str()
   ctx.database = None
-  return 'login: ok'
+  ctx.response = 'login: ok'
 
 
-def whoami(ctx: Context) -> Username:
+def whoami(ctx: Context) -> None:
   if ctx.username == '':
     raise UserNotLoggedInError
-  return ctx.username
+  ctx.response = ctx.username
 
 
-def create_db(ctx: Context) -> str:
+def create_db(ctx: Context) -> None:
   try:
     new_db_name = ctx.params[0]
   except IndexError:
     raise InvalidNumberOfParamsError
   ctx.store.create_database(username=ctx.username, new_db_name=new_db_name)
   ctx.store.add_user_to_owners(username=ROOT_USER, db_name=new_db_name)
-  return 'create_db: ok'
+  ctx.response = 'create_db: ok'
 
 
-def add_user_to_owners(ctx: Context) -> str:
+def add_user_to_owners(ctx: Context) -> None:
   try:
     new_owner_username = ctx.params[0]
     db_name = ctx.params[1]
@@ -44,34 +44,34 @@ def add_user_to_owners(ctx: Context) -> str:
   if ctx.username != ROOT_USER:
     raise UserUnauthorizedError
   ctx.store.add_user_to_owners(username=new_owner_username, db_name=db_name)
-  return 'add_user_to_owners: ok'
+  ctx.response = 'add_user_to_owners: ok'
 
 
-def select_db(ctx: Context) -> str:
+def select_db(ctx: Context) -> None:
   try:
     db_name = ctx.params[0]
   except IndexError:
     raise InvalidNumberOfParamsError
   ctx.database = ctx.store.get_database_by_name(username=ctx.username, db_name=db_name)
   ctx.database_name = db_name
-  return 'select_db: ok'
+  ctx.response = 'select_db: ok'
 
 
 def current_db(ctx: Context) -> DatabaseName:
   if ctx.database_name == '':
     raise NoDbSelectedError
-  return ctx.database_name
+  ctx.response = ctx.database_name
 
 
-def get(ctx: Context) -> Value:
+def get(ctx: Context) -> None:
   try:
     key = ctx.params[0]
   except IndexError:
     raise InvalidNumberOfParamsError
-  return ctx.database.get(key=key)
+  ctx.response = ctx.database.get(key=key)
 
 
-def put(ctx: Context) -> str:
+def put(ctx: Context) -> None:
   try:
     key = ctx.params[0]
     value = ctx.params[1]
@@ -87,19 +87,19 @@ def put(ctx: Context) -> str:
       raise InvalidTTLValueError
     ttl = int(ttl_string)
     ctx.database.set_ttl(key=key, ttl=ttl)
-  return 'put: ok'
+  ctx.response = 'put: ok'
 
 
-def delete(ctx: Context) -> str:
+def delete(ctx: Context) -> None:
   try:
     key: Key = ctx.params[0]
   except IndexError:
     raise InvalidNumberOfParamsError
   ctx.database.delete(key=key)
-  return 'delete: ok'
+  ctx.response = 'delete: ok'
 
 
-def update(ctx: Context) -> str:
+def update(ctx: Context) -> None:
   try:
     key = ctx.params[0]
     value = ctx.params[1]
@@ -115,10 +115,10 @@ def update(ctx: Context) -> str:
       raise InvalidTTLValueError
     ttl = int(ttl_string)
     ctx.database.set_ttl(key=key, ttl=ttl)
-  return 'update: ok'
+  ctx.response = 'update: ok'
 
 
-def delete_user(ctx: Context) -> str:
+def delete_user(ctx: Context) -> None:
   if ctx.username != ROOT_USER:
     raise UserUnauthorizedError
   try:
@@ -126,10 +126,10 @@ def delete_user(ctx: Context) -> str:
   except IndexError:
     raise InvalidNumberOfParamsError
   ctx.store.delete_user(user_to_delete=user_to_delete)
-  return 'delete_user: ok'
+  ctx.response = 'delete_user: ok'
 
 
-def delete_db(ctx: Context) -> str:
+def delete_db(ctx: Context) -> None:
   try:
     db_to_delete = ctx.params[0]
   except IndexError:
@@ -138,22 +138,22 @@ def delete_db(ctx: Context) -> str:
   current_selected_db_name = ctx.database_name
   if current_selected_db_name == db_to_delete:
     ctx.database_name = str()
-  return 'delete_db: ok'
+  ctx.response = 'delete_db: ok'
 
 
-def list_users(ctx: Context) -> str:
-  return str(ctx.store.list_users_of_db(db_name=ctx.database_name))
+def list_users(ctx: Context) -> None:
+  ctx.response = str(ctx.store.list_users_of_db(db_name=ctx.database_name))
 
 
-def list_dbs(ctx: Context) -> str:
-  return str(ctx.store.list_dbs_of_user(username=ctx.username))
+def list_dbs(ctx: Context) -> None:
+  ctx.response = str(ctx.store.list_dbs_of_user(username=ctx.username))
 
 
-def register_user(ctx: Context) -> str:
+def register_user(ctx: Context) -> None:
   try:
     username_to_create = ctx.params[0]
     password = ctx.params[1]
   except IndexError:
     raise InvalidNumberOfParamsError
   ctx.store.create_user(username_to_create=username_to_create, password=password)
-  return 'create_user: ok'
+  ctx.response = 'create_user: ok'

@@ -2,7 +2,7 @@
 start:
 	python3 main.py
 start-container:
-	sudo docker compose up --build in-memo-db
+	docker compose up --build in-memo-db
 test:
 	python3 -m unittest -v
 manual-test:
@@ -13,4 +13,5 @@ clean:
 
 # e2e-test
 
-# load-test
+load-test:
+	python3 load_test.py

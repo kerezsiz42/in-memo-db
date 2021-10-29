@@ -1,6 +1,6 @@
 import json
 import os
-from typing import Dict, Generic, Iterator, TypeVar
+from typing import Dict, Generic, Iterator, TypeVar, cast
 
 K = TypeVar('K', str, int)
 V = TypeVar('V')
@@ -18,8 +18,7 @@ class PersistentDictionary(Generic[K, V]):
 
   def _read_file(self) -> Dict[K, V]:
     with open(self._filepath, 'r') as file:
-      obj: Dict[K, V] = json.load(fp=file)
-      return obj
+      return cast(Dict[K, V], json.load(fp=file))
 
   def _write_file(self, obj: Dict[K, V]) -> None:
     with open(self._filepath, 'w') as file:

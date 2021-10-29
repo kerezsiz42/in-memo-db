@@ -7,7 +7,7 @@ Value = NewType('Value', str)
 ExpireAtEpoch = NewType('ExpireAtEpoch', int)
 
 
-class Database():
+class Database:
   "Single self-contained storage object that the user can select and manipulate through the handlers."
 
   def __init__(self) -> None:
