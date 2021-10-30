@@ -3,10 +3,16 @@ import os
 from typing import Dict, Generic, Iterator, Tuple, TypeVar, cast
 
 K = TypeVar('K', str, int)
+# only immutable types
 V = TypeVar('V', str, Tuple[str, ...])
 
 
 class PersistentDictionary(Generic[K, V]):
+  '''
+  A dict() like object that whose properties can be set, deleted,
+  iterated through and read which writes every change into a json file.
+  '''
+
   def __init__(self, filepath: str) -> None:
     self._filepath = filepath
     self._dict: Dict[K, V] = dict()

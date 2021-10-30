@@ -1,10 +1,5 @@
 class CustomException(Exception):
-  def __init__(self, message: str = ''):
-    self.message = message
-    super().__init__(self.message)
-
-  def __str__(self) -> str:
-    return str(self.message)
+  pass
 
 
 DbNotExistError = CustomException('database does not exist')

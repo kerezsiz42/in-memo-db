@@ -19,7 +19,7 @@ Handler = Callable[[Context], None]
 
 
 class Router():
-  "Stores routes and runs the appropiate handlers when called."
+  'Stores routes and runs the appropiate handlers when called.'
 
   def __init__(self, store: Store):
     self._store: Store = store
@@ -42,12 +42,12 @@ class Router():
     }
 
   async def __call__(self, reader: StreamReader, writer: StreamWriter) -> None:
-    """
+    '''
     Handles the communication between server and client through
     the read and write streams provided by asyncio.start_server()
     It parses input line by line and calls the appropriate handlers
     in order if they where defined for the route provided by the user.
-    """
+    '''
     logging.info('new client connected')
     ctx = Context(store=self._store)
     while True:
@@ -74,49 +74,12 @@ class Router():
         await writer.drain()
         ctx.response = None
 
-  def load_sequential_save_file(self) -> None:
-    try:
-      with open(SEQUENTIAL_SAVE_FILENAME, 'r') as file:
-        for line in file:
-          exec_time_str, command_str_with_db_name, = line.rstrip().split('\t')
-          custom_time.time = int(exec_time_str)
-          route_str, *params = command_str_with_db_name.split()
-          route = Route[route_str]
-
-          try:
-            if route in [Route.delete, Route.put, Route.update]:
-              db_name, *params = params
-              database: Database = self._store.get_database_by_name(username=ROOT_USER, db_name=db_name)
-              if route == Route.delete:
-                database.delete(key=params[0])
-              elif route == Route.put:
-                database.put(key=params[0], value=params[1])
-              elif route == Route.update:
-                database.update(key=params[0], value=params[1])
-            elif route == Route.create_db:
-              self._store.create_database(new_db_name=params[0], username=ROOT_USER)
-            elif route == Route.delete_db:
-              self._store.delete_database(db_to_delete=params[0], username=ROOT_USER)
-          except CustomException as err:
-            logging.warning(f'cannot execute command from past: {err}')
-
-        custom_time.time = None
-        self._store.delete_expired_keys_from_dbs()
-    except FileNotFoundError:
-      logging.info(f'no {SEQUENTIAL_SAVE_FILENAME} file found')
-    else:
-      logging.info(f'loaded {SEQUENTIAL_SAVE_FILENAME}')
-      self.delete_sequential_save_file()
-
-  def delete_sequential_save_file(self) -> None:
-    try:
-      os.remove(SEQUENTIAL_SAVE_FILENAME)
-    except OSError:
-      logging.info(f'no {SEQUENTIAL_SAVE_FILENAME} file found')
-    else:
-      logging.info(f'deleted {SEQUENTIAL_SAVE_FILENAME}')
-
   def try_to_save_successful_command(self, database_name: DatabaseName, route: Route, params: Tuple[str, ...]) -> None:
+    '''
+    Should be called when command ran successfully. It saves the params,
+    route, and database name together with the execution time in order to
+    be able to run these again in case the process dies.
+    '''
     command = None
     if route == Route.delete:
       key = params[0]
@@ -136,3 +99,41 @@ class Router():
     if command is not None:
       with open(SEQUENTIAL_SAVE_FILENAME, 'a') as file:
         file.write(f'{custom_time.time}\t{" ".join(command)}\n')
+
+  def load_sequential_save_file(self) -> None:
+    'Load and execute the saved commands when the process did not shutting down gracefully.'
+    try:
+      with open(SEQUENTIAL_SAVE_FILENAME, 'r') as file:
+        for line in file:
+          exec_time_str, command_str_with_db_name, = line.rstrip().split('\t')
+          custom_time.time = int(exec_time_str)
+          route_str, *params = command_str_with_db_name.split()
+          route = Route[route_str]
+          if route in [Route.delete, Route.put, Route.update]:
+            db_name, *params = params
+            database: Database = self._store.get_database_by_name(username=ROOT_USER, db_name=db_name)
+            if route == Route.delete:
+              database.delete(key=params[0])
+            elif route == Route.put:
+              database.put(key=params[0], value=params[1])
+            elif route == Route.update:
+              database.update(key=params[0], value=params[1])
+          elif route == Route.create_db:
+            self._store.create_database(new_db_name=params[0], username=ROOT_USER)
+          elif route == Route.delete_db:
+            self._store.delete_database(db_to_delete=params[0], username=ROOT_USER)
+        custom_time.time = None
+        self._store.delete_expired_keys_from_dbs()
+    except FileNotFoundError:
+      logging.info(f'no {SEQUENTIAL_SAVE_FILENAME} file found')
+    else:
+      logging.info(f'loaded {SEQUENTIAL_SAVE_FILENAME}')
+      self.delete_sequential_save_file()
+
+  def delete_sequential_save_file(self) -> None:
+    try:
+      os.remove(SEQUENTIAL_SAVE_FILENAME)
+    except OSError:
+      logging.info(f'no {SEQUENTIAL_SAVE_FILENAME} file found')
+    else:
+      logging.info(f'deleted {SEQUENTIAL_SAVE_FILENAME}')
