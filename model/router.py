@@ -1,36 +1,18 @@
 import os
-from typing import Callable, Dict, List
-from asyncio import StreamReader, StreamWriter
 import logging
+from typing import Callable, Dict, List, Tuple
+from asyncio import StreamReader, StreamWriter
 from config import ROOT_USER
-from enum import Enum, unique
 from constants import SEQUENTIAL_SAVE_FILENAME
 from model.context import Context
 from model.database import Database
-from model.exception import CustomException, InvalidCommandError
+from model.exception import CustomException
 from model.store import DatabaseName, Store
 from model.custom_time import custom_time
+from model.route import Route
 from handlers import add_user_to_owners, create_db, register_user, current_db, delete, delete_db
 from handlers import get, list_dbs, list_users, login, put, select_db, update, whoami, delete_user
-
-
-@unique
-class Route(Enum):
-  login = 'login'
-  whoami = 'whoami'
-  register_user = 'register_user'
-  add_user_to_owners = 'add_user_to_owners'
-  create_db = 'create_db'
-  select_db = 'select_db'
-  delete_db = 'delete_db'
-  delete_user = 'delete_user'
-  list_users = 'list_users'
-  list_dbs = 'list_dbs'
-  current_db = 'current_db'
-  get = 'get'
-  put = 'put'
-  delete = 'delete'
-  update = 'update'
+from model.validator import validate_route
 
 
 Handler = Callable[[Context], None]
@@ -73,21 +55,16 @@ class Router():
       if reader.at_eof():
         logging.info('client closed connection')
         break
-      route_str, *params = line.decode().rstrip().split()
-
-      ctx.params = params
       try:
-        try:
-          route = Route[route_str]
-        except KeyError:
-          raise InvalidCommandError
+        route, params = validate_route(line)
+        ctx.params = params
         for handler in self._routes[route]:
           handler(ctx)
       except CustomException as err:
         logging.warning(err)
         ctx.response = str(err)
       except Exception as err:
-        logging.warning(err)
+        logging.error(err)
         print(err)
         ctx.response = 'internal server error'
       else:
@@ -139,7 +116,7 @@ class Router():
     else:
       logging.info(f'deleted {SEQUENTIAL_SAVE_FILENAME}')
 
-  def try_to_save_successful_command(self, database_name: DatabaseName, route: Route, params: List[str]) -> None:
+  def try_to_save_successful_command(self, database_name: DatabaseName, route: Route, params: Tuple[str, ...]) -> None:
     command = None
     if route == Route.delete:
       key = params[0]

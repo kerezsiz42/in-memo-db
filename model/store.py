@@ -2,7 +2,7 @@ import os
 import hashlib
 import pickle
 import logging
-from typing import Dict, List, NewType, cast
+from typing import Dict, List, NewType, Tuple, cast
 from config import PBKDF2_HMAC_ITERATIONS, ROOT_PASSWORD, ROOT_USER
 from model.database import Database
 from model.persistent_dictionary import PersistentDictionary
@@ -21,8 +21,8 @@ class Store():
   def __init__(self) -> None:
     self._dbs: Dict[DatabaseName, Database] = dict()
     self._users = PersistentDictionary[Username, str](filepath=USERS_JSON_FILENAME)
-    self._users_of_dbs = PersistentDictionary[DatabaseName, List[Username]](filepath=USERS_OF_DBS_JSON_FILENAME)
-    self._dbs_of_users = PersistentDictionary[Username, List[DatabaseName]](filepath=DBS_OF_USERS_JSON_FILENAME)
+    self._users_of_dbs = PersistentDictionary[DatabaseName, Tuple[Username, ...]](filepath=USERS_OF_DBS_JSON_FILENAME)
+    self._dbs_of_users = PersistentDictionary[Username, Tuple[DatabaseName, ...]](filepath=DBS_OF_USERS_JSON_FILENAME)
     try:
       self.create_user(Username(ROOT_USER), ROOT_PASSWORD)
       logging.info('registered root user from env vars')
@@ -42,7 +42,7 @@ class Store():
     if new_db_name in self._dbs:
       raise DbAlreadyExistsError
     self._dbs[new_db_name] = Database()
-    self._users_of_dbs[new_db_name] = list()
+    self._users_of_dbs[new_db_name] = tuple()
     self.add_user_to_owners(username=username, db_name=new_db_name)
 
   def add_user_to_owners(self, username: Username, db_name: DatabaseName) -> None:
@@ -50,8 +50,8 @@ class Store():
     if username not in self._users:
       raise UserNotExistError
     if username not in self._users_of_dbs[db_name]:
-      self._users_of_dbs[db_name] = [username, *self._users_of_dbs[db_name]]
-      self._dbs_of_users[username] = [db_name, *self._dbs_of_users[username]]
+      self._users_of_dbs[db_name] = (username, *self._users_of_dbs[db_name])
+      self._dbs_of_users[username] = (db_name, *self._dbs_of_users[username])
 
   def delete_database(self, username: Username, db_to_delete: DatabaseName) -> None:
     """
@@ -63,8 +63,7 @@ class Store():
     del self._dbs[db_to_delete]
     db_users = self._users_of_dbs[db_to_delete]
     for db_user in db_users:
-      databases_of_user = self._dbs_of_users[db_user]
-      databases_of_user.remove(db_to_delete)
+      self._dbs_of_users[db_user] = tuple(db for db in self._dbs_of_users[db_user] if db != db_to_delete)
     del self._users_of_dbs[db_to_delete]
 
   def delete_user(self, user_to_delete: Username) -> None:
@@ -77,8 +76,7 @@ class Store():
     del self._users[user_to_delete]
     dbs_of_user = self._dbs_of_users[user_to_delete]
     for database in dbs_of_user:
-      users_of_db = self._users_of_dbs[database]
-      users_of_db.remove(user_to_delete)
+      self._users_of_dbs[database] = tuple(user for user in self._users_of_dbs[database] if user != user_to_delete)
     del self._dbs_of_users[user_to_delete]
 
   def get_database_by_name(self, username: Username, db_name: DatabaseName) -> Database:
@@ -111,7 +109,7 @@ class Store():
       raise UsernameAlreadyTakenError
     # TODO: check for invalid characters
     self._users[username_to_create] = self._hash_password(password.encode()).hex()
-    self._dbs_of_users[username_to_create] = list()
+    self._dbs_of_users[username_to_create] = tuple()
 
   def authenticate_user(self, username: Username, password: str) -> bool:
     "Returns True if user with the provided username exists and the given password string is right."
@@ -121,18 +119,16 @@ class Store():
     return self._verify_password(password_to_verify=password.encode(), key_and_salt=key_and_salt)
 
   def list_users_of_db(self, db_name: DatabaseName) -> List[Username]:
-    "Retreives a set of usernames of whom the database is owned by."
+    "Retreives a list of usernames of whom the database is owned by."
     if db_name not in self._dbs:
       raise DbNotExistError
-    # Mypy false positive: returning any from function declared to return ...
-    return cast(List[Username], self._users_of_dbs[db_name])
+    return list(self._users_of_dbs[db_name])
 
   def list_dbs_of_user(self, username: Username) -> List[DatabaseName]:
-    "Retreives a set of database names owned by the specified user."
+    "Retreives a list of database names owned by the specified user."
     if username not in self._users:
       raise UserNotExistError
-    # Mypy false positive: returning any from function declared to return ...
-    return cast(List[DatabaseName], self._dbs_of_users[username])
+    return list(self._dbs_of_users[username])
 
   def load_dbs_from_disk(self) -> None:
     try:

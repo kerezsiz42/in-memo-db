@@ -1,9 +1,9 @@
 import json
 import os
-from typing import Dict, Generic, Iterator, TypeVar, cast
+from typing import Dict, Generic, Iterator, Tuple, TypeVar, cast
 
 K = TypeVar('K', str, int)
-V = TypeVar('V')
+V = TypeVar('V', str, Tuple[str, ...])
 
 
 class PersistentDictionary(Generic[K, V]):
