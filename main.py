@@ -32,6 +32,7 @@ async def main_coro() -> None:
     store.save_dbs_to_disk()
     router.delete_sequential_save_file()
     logging.info('graceful shutdown: ok')
+    exit(0)
 
 if __name__ == '__main__':
   logging.basicConfig(format='%(asctime)s [%(levelname)s]: %(message)s', stream=sys.stdout, level=logging.INFO)

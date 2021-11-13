@@ -1,6 +1,6 @@
 import os
 import logging
-from typing import Callable, Dict, List, Tuple
+from typing import Callable, Dict, List, Optional, TextIO, Tuple
 from asyncio import StreamReader, StreamWriter
 from config import ROOT_USER
 from constants import SEQUENTIAL_SAVE_FILENAME
@@ -23,6 +23,7 @@ class Router():
 
   def __init__(self, store: Store):
     self._store: Store = store
+    self._file: Optional[TextIO] = None
     self._routes: Dict[Route, List[Handler]] = {
         Route.login: [login],
         Route.whoami: [whoami],
@@ -66,15 +67,15 @@ class Router():
       except Exception as err:
         logging.error(err)
         print(err)
-        ctx.response = 'internal server error'
+        exit(1)
       else:
-        self.try_to_save_successful_command(ctx.database_name, route, params)
+        self.save_successful_command(ctx.database_name, route, params)
       finally:
         writer.write(f'{ctx.response}\n'.encode())
         await writer.drain()
         ctx.response = None
 
-  def try_to_save_successful_command(self, database_name: DatabaseName, route: Route, params: Tuple[str, ...]) -> None:
+  def save_successful_command(self, database_name: DatabaseName, route: Route, params: Tuple[str, ...]) -> None:
     '''
     Should be called when command ran successfully. It saves the params,
     route, and database name together with the execution time in order to
@@ -90,18 +91,20 @@ class Router():
       command = [route.value, database_name, key, value]
       try:
         ttl_string = params[2]
-        command.append(ttl_string)
+        command = [*command, ttl_string]
       except IndexError:
         pass
     elif route in [Route.delete_db, Route.create_db]:
       db_name = params[0]
       command = [route.value, db_name]
     if command is not None:
-      with open(SEQUENTIAL_SAVE_FILENAME, 'a') as file:
-        file.write(f'{custom_time.time}\t{" ".join(command)}\n')
+      if self._file is None:
+        self._file = open(SEQUENTIAL_SAVE_FILENAME, 'a')
+      self._file.write(f'{custom_time.time}\t{" ".join(command)}\n')
+      self._file.flush()
 
   def load_sequential_save_file(self) -> None:
-    'Load and execute the saved commands when the process did not shutting down gracefully.'
+    'Load and execute the saved commands when the process did not shut down gracefully.'
     try:
       with open(SEQUENTIAL_SAVE_FILENAME, 'r') as file:
         for line in file:
@@ -132,6 +135,8 @@ class Router():
 
   def delete_sequential_save_file(self) -> None:
     try:
+      if self._file is not None:
+        self._file.close()
       os.remove(SEQUENTIAL_SAVE_FILENAME)
     except OSError:
       logging.info(f'no {SEQUENTIAL_SAVE_FILENAME} file found')

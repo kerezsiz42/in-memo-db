@@ -1,8 +1,7 @@
 from config import ROOT_USER
 from model.database import Key
-from model.exception import InvalidCredentialsError, InvalidNumberOfParamsError, InvalidTTLValueError, NoDbSelectedError, UserNotLoggedInError, UserUnauthorizedError
+from model.exception import CannotDeleteRootUserError, InvalidCredentialsError, InvalidNumberOfParamsError, InvalidTTLValueError, NoDbSelectedError, UserNotLoggedInError, UserUnauthorizedError
 from model.router import Context
-from model.store import DatabaseName
 
 
 def login(ctx: Context) -> None:
@@ -57,7 +56,7 @@ def select_db(ctx: Context) -> None:
   ctx.response = 'select_db: ok'
 
 
-def current_db(ctx: Context) -> DatabaseName:
+def current_db(ctx: Context) -> None:
   if ctx.database_name == '':
     raise NoDbSelectedError
   ctx.response = ctx.database_name
@@ -125,6 +124,8 @@ def delete_user(ctx: Context) -> None:
     user_to_delete = ctx.params[0]
   except IndexError:
     raise InvalidNumberOfParamsError
+  if user_to_delete == ROOT_USER:
+    raise CannotDeleteRootUserError
   ctx.store.delete_user(user_to_delete=user_to_delete)
   ctx.response = 'delete_user: ok'
 
@@ -138,6 +139,7 @@ def delete_db(ctx: Context) -> None:
   current_selected_db_name = ctx.database_name
   if current_selected_db_name == db_to_delete:
     ctx.database_name = str()
+    ctx.database = None
   ctx.response = 'delete_db: ok'
 
 

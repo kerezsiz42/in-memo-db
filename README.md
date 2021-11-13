@@ -4,7 +4,7 @@
 
 The goal of this development is to create an in-memory cache that can be used by http servers
 and other services and is faster at retrieving and setting data than conventional databases.
-It stores data in RAM and provides an simple interface for clients to access their data through
+It stores data in RAM and provides a simple interface for clients to access their data through
 a custom protocol built on top of TCP sockets.
 
 ### Features
@@ -23,15 +23,15 @@ a custom protocol built on top of TCP sockets.
   - [x] logs out to stdout
   - [ ] no admin processes
 - multiple distinct db
-- safe user and resource handling with authorization and authentication
+- safe user and resource handling with authorization and authentication (PBKDF2_HMAC)
   - users are able to create, list and delete their databases
 - single threaded, concurrent working, using the build-in asyncio library
 - key expiration can be set (i.e. for expiring sessions)
+- persistence on disk using the pickle library
+- fast sequential save
 
 ### TODO:
 
-- persistence on disk using the pickle library
-- fast sequential save (?)
 - tests
 - documentation
 

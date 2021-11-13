@@ -3,7 +3,7 @@ from typing import Optional
 
 
 class CustomTime():
-  'A time object that can be manipulated to go back in time.'
+  'A time object that can be manipulated to go back or forward in time.'
 
   def __init__(self) -> None:
     self._time: Optional[int] = None

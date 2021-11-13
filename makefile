@@ -1,4 +1,4 @@
-# This codebase has benn developed on Linux Python version 3.8.10 64-bit
+# This codebase has been developed on Linux with Python version 3.8.10 64-bit
 start:
 	python3 main.py
 start-container:
@@ -10,8 +10,3 @@ manual-test:
 clean:
 	rm -rf state_files/*
 	echo "This folder has to be present in the folder structure, because the state is saved here." > state_files/README.md
-
-# e2e-test
-
-load-test:
-	python3 load_test.py

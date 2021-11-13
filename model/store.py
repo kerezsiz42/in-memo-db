@@ -42,7 +42,8 @@ class Store():
     if new_db_name in self._dbs:
       raise DbAlreadyExistsError
     self._dbs[new_db_name] = Database()
-    self._users_of_dbs[new_db_name] = tuple()
+    self._users_of_dbs[new_db_name] = tuple(self._users_of_dbs[new_db_name]
+                                            ) if new_db_name in self._users_of_dbs else tuple()
     self.add_user_to_owners(username=username, db_name=new_db_name)
 
   def add_user_to_owners(self, username: Username, db_name: DatabaseName) -> None:
@@ -51,6 +52,7 @@ class Store():
       raise UserNotExistError
     if username not in self._users_of_dbs[db_name]:
       self._users_of_dbs[db_name] = (username, *self._users_of_dbs[db_name])
+    if db_name not in self._dbs_of_users[username]:
       self._dbs_of_users[username] = (db_name, *self._dbs_of_users[username])
 
   def delete_database(self, username: Username, db_to_delete: DatabaseName) -> None:

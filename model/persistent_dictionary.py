@@ -3,13 +3,13 @@ import os
 from typing import Dict, Generic, Iterator, Tuple, TypeVar, cast
 
 K = TypeVar('K', str, int)
-# only immutable types
+# immutable types only
 V = TypeVar('V', str, Tuple[str, ...])
 
 
 class PersistentDictionary(Generic[K, V]):
   '''
-  A dict() like object that whose properties can be set, deleted,
+  A dict() like object whose properties can be set, deleted,
   iterated through and read which writes every change into a json file.
   '''
 
@@ -17,7 +17,7 @@ class PersistentDictionary(Generic[K, V]):
     self._filepath = filepath
     self._dict: Dict[K, V] = dict()
     file_exists = os.path.isfile(self._filepath)
-    if not file_exists or (file_exists and os.path.getsize(self._filepath) == 0):
+    if not file_exists:
       self._write_file(obj=self._dict)
     else:
       self._dict = self._read_file()
